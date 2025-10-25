@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title> Airport Departures</title> 
+<link rel="shortcut icon" href="img/logo.png" type="image/x-icon">
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  body { background: #1a1a1a; color: #fff; }
+  th, td { text-align: center; padding: 0.75rem; }
+  thead th { background: #111827; }
+  tbody tr:nth-child(even) { background: #1f2937; }
+  tbody tr:nth-child(odd) { background: #111827; }
+  .board { overflow-x:auto; }
+  .status-onTime { color: #3b82f6; font-weight: bold; }   /* blue */
+  .status-delayed { color: #facc15; font-weight: bold; } /* yellow */
+  .status-cancelled { color: #ef4444; font-weight: bold; } /* red */
+  .status-departed { color: #10b981; font-weight: bold; } /* green */
+</style>
+</head>
+<body class="font-sans">
+
+<header class="text-center py-6 bg-blue-800 shadow-lg">
+  <h1 class="text-3xl sm:text-4xl font-bold"> ✈️ Airport Departures</h1>
+  <p class="mt-1 text-blue-200">⏱️ Real Local-time </p>
+  <p class="mt-1 text-blue-200">Enjoy your flight! </p>
+</header>
+
+<main class="container mx-auto px-2 py-6 board">
+  <table class="min-w-full border border-gray-700 rounded-lg text-sm sm:text-base">
+    <thead>
+      <tr>
+        <th>Flight</th>
+        <th>From</th>
+        <th>To</th>
+        <th>Schedule</th>
+        <th>Local Time</th>
+        <th>Gate</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody id="flightTable"></tbody>
+  </table>
+</main>
+
+<footer class="bg-gray-900 text-center py-4 mt-4">
+  <p class="text-sm">&copy; 2025 Airport. All rights reserved.</p> 
+  <br>
+  <p class="text-sm">✈️ Have a safe flight! by Noel Muang </p>
+</footer>
+
+<script>
+  const flights = [
+    { flight: "AA101", from: "🇺🇸 Tulsa", to: "🇺🇸 Dallas", schedule: "08:30 AM", gate: "A1", status: "onTime", timezone: "America/Chicago" },
+    { flight: "KE202", from: "🇺🇸 Dallas", to: "🇰🇷 Seoul", schedule: "10:15 AM", gate: "B12", status: "delayed", timezone: "America/Chicago" },
+    { flight: "MH303", from: "🇰🇷 Seoul", to: "🇲🇾 Kuala Lumpur", schedule: "01:45 PM", gate: "C5", status: "onTime", timezone: "Asia/Seoul" },
+    { flight: "TG404", from: "🇲🇾 Kuala Lumpur", to: "🇹🇭 Bangkok", schedule: "03:30 PM", gate: "D8", status: "onTime", timezone: "Asia/Kuala_Lumpur" },
+    { flight: "TG505", from: "🇹🇭 Bangkok", to: "🇲🇲 Yangon", schedule: "05:00 PM", gate: "E3", status: "cancelled", timezone: "Asia/Bangkok" },
+    { flight: "XY606", from: "🇲🇲 Yangon", to: "🇲🇲 Kalaymyo", schedule: "06:45 PM", gate: "F1", status: "onTime", timezone: "Asia/Yangon" },
+    { flight: "JL707", from: "🇲🇲 Yangon", to: "🇯🇵 Tokyo", schedule: "08:30 PM", gate: "G4", status: "delayed", timezone: "Asia/Yangon" },
+    { flight: "NH808", from: "🇯🇵 Tokyo", to: "🇺🇸 Los Angeles", schedule: "10:15 PM", gate: "H7", status: "onTime", timezone: "Asia/Tokyo" },
+    { flight: "AA909", from: "🇺🇸 Los Angeles", to: "🇺🇸 Tulsa", schedule: "11:50 PM", gate: "J2", status: "onTime", timezone: "America/Los_Angeles" },
+    { flight: "DL010", from: "🇺🇸 Tulsa", to: "🇺🇸 New York", schedule: "01:30 AM", gate: "K6", status: "onTime", timezone: "America/Chicago" },
+    { flight: "BA111", from: "🇺🇸 New York", to: "🇬🇧 London", schedule: "04:00 AM", gate: "L1", status: "onTime", timezone: "America/New_York" },
+    { flight: "BA222", from: "🇬🇧 London", to: "🇫🇷 Paris", schedule: "06:15 AM", gate: "L2", status: "onTime", timezone: "Europe/London" },
+    { flight: "BA333", from: "🇫🇷 Paris", to: "🇪🇸 Barcelona", schedule: "08:30 AM", gate: "L3", status: "onTime", timezone: "Europe/Paris" },
+    { flight: "BA444", from: "🇪🇸 Barcelona", to: "🇮🇹 Rome", schedule: "10:45 AM", gate: "L4", status: "onTime", timezone: "Europe/Madrid" },
+    { flight: "BA555", from: "🇮🇹 Rome", to: "🇺🇸 Boston", schedule: "01:00 PM", gate: "L5", status: "onTime", timezone: "Europe/Rome" },
+    { flight: "BA666", from: "🇺🇸 Boston", to: "🇺🇸 Denver", schedule: "03:15 PM", gate: "L6", status: "onTime", timezone: "America/New_York" },
+    { flight: "BA777", from: "🇺🇸 Denver", to: "🇺🇸 Tulsa", schedule: "05:30 PM", gate: "L7", status: "onTime", timezone: "America/Denver" }
+  ];
+
+  function parseTime(schedule, timezone) {
+    const [time, modifier] = schedule.split(" ");
+    let [hours, minutes] = time.split(":").map(Number);
+    if(modifier==="PM" && hours<12) hours+=12;
+    if(modifier==="AM" && hours===12) hours=0;
+    const date = new Date();
+    const utc = Date.UTC(date.getFullYear(), date.getMonth(), date.getDate(), hours-(date.getTimezoneOffset()/60), minutes, 0);
+    return new Date(utc);
+  }
+
+  function formatTime(date, timezone) {
+    return date.toLocaleTimeString("en-US", { hour: '2-digit', minute:'2-digit', hour12:true, timeZone: timezone });
+  }
+
+  function updateFlightTable() {
+    const tbody = document.getElementById("flightTable");
+    tbody.innerHTML = "";
+    const now = new Date();
+
+    flights.forEach(flight => {
+      const flightTime = parseTime(flight.schedule, flight.timezone);
+      let statusText="", statusClass="";
+
+      // Force On Time for specific flights
+      if((flight.from==="🇺🇸 Tulsa" && flight.to==="🇺🇸 Dallas") || 
+         (flight.from==="🇲🇾 Kuala Lumpur" && flight.to==="🇹🇭 Bangkok")) {
+        statusText="On Time"; 
+        statusClass="status-onTime";
+      } else if(flight.status==="cancelled") {
+        statusText="Cancelled"; 
+        statusClass="status-cancelled";
+      } else if(flight.status==="delayed") {
+        statusText="Delayed"; 
+        statusClass="status-delayed";
+      } else if(now>flightTime) {
+        statusText="Departed"; 
+        statusClass="status-departed";
+      } else {
+        statusText="On Time"; 
+        statusClass="status-onTime";
+      }
+
+      const localTime = formatTime(new Date(), flight.timezone);
+
+      const row = `<tr>
+        <td>${flight.flight}</td>
+        <td>${flight.from}</td>
+        <td>${flight.to}</td>
+        <td>${flight.schedule}</td>
+        <td>${localTime}</td>
+        <td>${flight.gate}</td>
+        <td class="${statusClass}">${statusText}</td>
+      </tr>`;
+      tbody.innerHTML += row;
+    });
+  }
+
+  // Initial update
+  updateFlightTable();
+  // Update every 5 minutes
+  setInterval(updateFlightTable, 300000);
+</script>
+
+</body>
+</html>
